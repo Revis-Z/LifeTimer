@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import AVFoundation
+import AudioToolbox
 import Combine
 
 struct AlarmRingingView: View {
@@ -15,9 +16,12 @@ struct AlarmRingingView: View {
     @State private var audioDuration: Double = 0.0
     @State private var timer: Timer?
     @State private var progressTimer: Timer?
+    @State private var systemSoundTimer: Timer?
     @State private var showingVolumeControl = false
     @State private var volume: Float = 0.7
     @State private var isViewLoaded = false
+    @State private var showDebugInfo = false
+    @State private var audioDelegate: AudioPlayerDelegate?
     
     // 励志语音内容数组
     private let motivationalAudios = [
@@ -196,13 +200,68 @@ struct AlarmRingingView: View {
                                 .transition(.opacity.combined(with: .scale))
                             }
                         }
-                        .padding(.horizontal, 24)
+                    .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 40)
+                
+                // 调试信息（可选显示）
+                if showDebugInfo {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("🔧 调试信息")
+                            .font(.headline)
+                            .foregroundColor(.yellow)
+                        
+                        Text("音频播放器: \(audioPlayer != nil ? "已创建" : "未创建")")
+                        Text("播放状态: \(isPlaying ? "播放中" : "已停止")")
+                        Text("音量: \(String(format: "%.1f", volume))")
+                        Text("音频时长: \(String(format: "%.1f", audioDuration))秒")
+                        Text("播放进度: \(String(format: "%.1f", playbackProgress))秒")
                     }
-                    .padding(.bottom, 40)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.8))
+                    .padding()
+                    .background(Color.black.opacity(0.3))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                }
+                
+                // 顶部状态栏区域
+                VStack {
+                    HStack {
+                        // 左上角时间显示
+                        Text(timeFormatter.string(from: currentTime))
+                            .font(.system(size: 18, weight: .medium, design: .monospaced))
+                            .foregroundColor(.white.opacity(0.9))
+                        
+                        Spacer()
+                        
+                        // 调试按钮
+                        Button(action: {
+                            showDebugInfo.toggle()
+                        }) {
+                            Image(systemName: "info.circle")
+                                .font(.title2)
+                                .foregroundColor(.white.opacity(0.6))
+                        }
+                        
+                        // 右上角音量控制
+                        Button(action: {
+                            showingVolumeControl.toggle()
+                        }) {
+                            Image(systemName: "speaker.wave.2.fill")
+                                .font(.title2)
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 12)
                     
                     Spacer()
-                    
-                    // 操作按钮区域
+                }
+                
+                Spacer()
+                
+                // 操作按钮区域
                     VStack(spacing: 16) {
                         // 关闭闹钟按钮
                         Button(action: dismissAlarm) {
@@ -259,6 +318,9 @@ struct AlarmRingingView: View {
         }
         .onAppear {
             print("🎵 AlarmRingingView 出现")
+            print("📱 当前时间: \(Date())")
+            print("⏰ 闹钟信息: \(alarm.timeString)")
+            
             if !isViewLoaded {
                 setupAudio()
                 startTimeTimer()
@@ -267,6 +329,11 @@ struct AlarmRingingView: View {
             }
             // 防止屏幕自动锁定
             UIApplication.shared.isIdleTimerDisabled = true
+            
+            // 强制触发视图更新
+            DispatchQueue.main.async {
+                currentTime = Date()
+            }
         }
         .onDisappear {
             print("🎵 AlarmRingingView 消失")
@@ -288,73 +355,95 @@ struct AlarmRingingView: View {
     // MARK: - 音频相关方法
     
     private func setupAudio() {
-        print("🎵 开始设置音频...")
+        print("🔧 设置音频...")
+        print("🔊 目标音量: \(alarm.volume)")
         
-        // 首先调试音频文件
+        // 调试音频文件
         debugAudioFiles()
         
-        // 配置音频会话
+        // 设置音频会话
         do {
             let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playback, mode: .default, options: [.allowBluetooth, .defaultToSpeaker])
+            try audioSession.setCategory(.playback, mode: .default, options: [.duckOthers, .allowBluetooth])
             try audioSession.setActive(true)
-            print("✅ 音频会话配置成功")
+            print("✅ 音频会话设置成功")
+            print("📊 当前音频会话类别: \(audioSession.category)")
         } catch {
             print("❌ 音频会话设置失败: \(error)")
         }
         
         // 尝试加载音频文件
-        print("🔍 正在查找音频文件: sample.mp3")
+        guard let audioURL = Bundle.main.url(forResource: "sample", withExtension: "mp3") else {
+            print("❌ 找不到音频文件 sample.mp3")
+            print("🔄 尝试使用系统默认声音")
+            setupSystemSound()
+            return
+        }
         
-        if let url = Bundle.main.url(forResource: "sample", withExtension: "mp3") {
-            print("✅ 找到音频文件: \(url.path)")
+        print("✅ 找到音频文件: \(audioURL.path)")
+        
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
             
-            do {
-                audioPlayer = try AVAudioPlayer(contentsOf: url)
-                audioPlayer?.prepareToPlay()
-                audioPlayer?.volume = volume
-                audioDuration = audioPlayer?.duration ?? 30.0
-                
-                print("✅ 音频播放器创建成功")
-                print("📊 音频时长: \(audioDuration) 秒")
-                print("🔊 音量设置: \(volume)")
-                
-                // 自动开始播放
-                playAudio()
-                return
-            } catch {
-                print("❌ 音频播放器设置失败: \(error)")
+            // 创建音频代理并设置回调
+            audioDelegate = AudioPlayerDelegate()
+            audioDelegate?.onFinishPlaying = { success in
+                DispatchQueue.main.async {
+                    self.isPlaying = false
+                    self.stopProgressTimer()
+                }
             }
-        } else {
-            print("❌ 未找到音频文件 sample.mp3")
-            print("📁 Bundle路径: \(Bundle.main.bundlePath)")
-            
-            // 列出Bundle中的所有文件
-            if let bundleContents = try? FileManager.default.contentsOfDirectory(atPath: Bundle.main.bundlePath) {
-                print("📂 Bundle内容:")
-                for file in bundleContents {
-                    if file.hasSuffix(".mp3") || file.hasSuffix(".wav") || file.hasSuffix(".m4a") {
-                        print("  🎵 \(file)")
+            audioDelegate?.onDecodeError = { error in
+                DispatchQueue.main.async {
+                    self.isPlaying = false
+                    self.stopProgressTimer()
+                    self.setupSystemSound()
+                }
+            }
+            audioDelegate?.onBeginInterruption = {
+                DispatchQueue.main.async {
+                    self.isPlaying = false
+                    self.stopProgressTimer()
+                }
+            }
+            audioDelegate?.onEndInterruption = { flags in
+                DispatchQueue.main.async {
+                    if flags == AVAudioSession.InterruptionOptions.shouldResume.rawValue {
+                        self.audioPlayer?.play()
+                        self.isPlaying = true
+                        self.startProgressTimer()
                     }
                 }
             }
+            
+            audioPlayer?.delegate = audioDelegate
+            audioPlayer?.numberOfLoops = -1 // 无限循环
+            audioPlayer?.volume = Float(alarm.volume)
+            audioDuration = audioPlayer?.duration ?? 30.0
+            
+            // 预加载音频
+            audioPlayer?.prepareToPlay()
+            
+            print("✅ 音频播放器设置成功")
+            print("🎵 音频时长: \(audioDuration)秒")
+            print("🔊 播放器音量: \(audioPlayer?.volume ?? 0)")
+            
+            // 立即开始播放
+            playAudio()
+        } catch {
+            print("❌ 音频播放器创建失败: \(error)")
+            print("🔄 回退到系统声音")
+            setupSystemSound()
         }
-        
-        // 如果没有音频文件或加载失败，使用模拟播放
-        print("⚠️ 使用模拟播放模式")
-        audioDuration = 30.0
-        isPlaying = true
-        startProgressTimer()
     }
     
     private func playAudio() {
         print("▶️ 开始播放音频...")
         
         if let player = audioPlayer {
-            print("🎵 使用真实音频播放器")
-            print("📊 播放器状态 - 准备就绪: \(player.prepareToPlay())")
-            print("🔊 当前音量: \(player.volume)")
-            print("⏱️ 音频时长: \(player.duration) 秒")
+            print("🎵 使用AVAudioPlayer播放")
+            print("🔊 播放器音量: \(player.volume)")
+            print("📊 音频时长: \(player.duration)秒")
             
             let success = player.play()
             print("🎯 播放结果: \(success ? "成功" : "失败")")
@@ -362,21 +451,19 @@ struct AlarmRingingView: View {
             if success {
                 isPlaying = true
                 startProgressTimer()
-                print("✅ 音频播放已开始")
+                print("✅ 音频播放已启动")
             } else {
-                print("❌ 音频播放失败")
-                // 如果播放失败，回退到模拟播放
-                isPlaying = true
-                startProgressTimer()
+                print("❌ 音频播放启动失败")
+                setupSystemSound()
             }
         } else {
-            print("🎭 使用模拟播放模式")
+            print("⚠️ 没有音频播放器，使用模拟播放")
             isPlaying = true
             startProgressTimer()
         }
         
         // 触觉反馈
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
         impactFeedback.impactOccurred()
         print("📳 触觉反馈已触发")
     }
@@ -455,57 +542,90 @@ struct AlarmRingingView: View {
     // MARK: - 操作方法
     
     private func dismissAlarm() {
-        // 停止音频播放
-        audioPlayer?.stop()
+        print("⏹️ 关闭闹钟")
         
-        // 更新闹钟状态（如果是一次性闹钟，则禁用）
-        if case .once = alarm.repeatMode {
-            var updatedAlarm = alarm
-            updatedAlarm.isEnabled = false
-            alarmStore.updateAlarm(updatedAlarm)
-        }
+        // 停止所有音频播放
+        audioPlayer?.stop()
+        systemSoundTimer?.invalidate()
+        systemSoundTimer = nil
+        isPlaying = false
+        
+        // 发送闹钟停止通知，让MainView处理一次性闹钟的禁用
+        NotificationCenter.default.post(name: .alarmStopped, object: alarm.id.uuidString)
+        print("📤 已发送闹钟停止通知")
         
         // 触觉反馈
         let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
         impactFeedback.impactOccurred()
         
+        // 清理资源
+        cleanup()
+        
         // 关闭页面
         isPresented = false
+        print("✅ 闹钟页面已关闭")
     }
     
     private func snoozeAlarm() {
-        // 停止音频播放
+        print("😴 稍后提醒")
+        
+        // 停止所有音频播放
         audioPlayer?.stop()
+        systemSoundTimer?.invalidate()
+        systemSoundTimer = nil
+        isPlaying = false
         
-        // 设置5分钟后的通知
-        let content = UNMutableNotificationContent()
-        content.title = "LifeTimer 稍后提醒"
-        content.body = "您设置的闹钟稍后提醒时间到了"
-        content.sound = .default
-        
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 300, repeats: false) // 5分钟 = 300秒
-        let request = UNNotificationRequest(identifier: "snooze_\(alarm.id.uuidString)", content: content, trigger: trigger)
-        
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("稍后提醒设置失败: \(error)")
-            }
-        }
+        // 发送稍后提醒通知，让MainView处理
+        NotificationCenter.default.post(name: .alarmSnoozed, object: alarm.id.uuidString)
+        print("📤 已发送稍后提醒通知")
         
         // 触觉反馈
         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
         impactFeedback.impactOccurred()
         
+        // 清理资源
+        cleanup()
+        
         // 关闭页面
         isPresented = false
+        print("✅ 闹钟页面已关闭")
     }
     
     private func cleanup() {
         timer?.invalidate()
         timer = nil
+        systemSoundTimer?.invalidate()
+        systemSoundTimer = nil
         stopProgressTimer()
         audioPlayer?.stop()
+        audioPlayer?.delegate = nil
         audioPlayer = nil
+        audioDelegate = nil
+        
+        print("🧹 清理完成")
+    }
+    
+    // MARK: - 系统声音备选方案
+    
+    private func setupSystemSound() {
+        print("🔔 设置系统声音备选方案")
+        
+        // 立即播放系统声音和振动
+        AudioServicesPlaySystemSound(1005) // 系统闹钟声音
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate) // 振动
+        
+        // 设置定时器重复播放系统声音
+        systemSoundTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            print("🔔 播放系统声音")
+            AudioServicesPlaySystemSound(1005)
+            AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+        }
+        
+        isPlaying = true
+        audioDuration = 30.0
+        startProgressTimer()
+        
+        print("✅ 系统声音备选方案已启动")
     }
     
     // MARK: - 辅助方法
@@ -561,6 +681,35 @@ struct AlarmRingingView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - 音频播放代理类
+
+class AudioPlayerDelegate: NSObject, AVAudioPlayerDelegate {
+    var onFinishPlaying: ((Bool) -> Void)?
+    var onDecodeError: ((Error?) -> Void)?
+    var onBeginInterruption: (() -> Void)?
+    var onEndInterruption: ((Int) -> Void)?
+    
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        print("🎵 音频播放完成: \(flag ? "成功" : "失败")")
+        onFinishPlaying?(flag)
+    }
+    
+    func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+        print("❌ 音频解码错误: \(error?.localizedDescription ?? "未知错误")")
+        onDecodeError?(error)
+    }
+    
+    func audioPlayerBeginInterruption(_ player: AVAudioPlayer) {
+        print("⏸️ 音频播放被中断")
+        onBeginInterruption?()
+    }
+    
+    func audioPlayerEndInterruption(_ player: AVAudioPlayer, withOptions flags: Int) {
+        print("▶️ 音频中断结束，恢复播放")
+        onEndInterruption?(flags)
     }
 }
 

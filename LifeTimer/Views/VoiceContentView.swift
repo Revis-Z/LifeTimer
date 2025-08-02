@@ -127,6 +127,9 @@ struct VoiceContentView: View {
                 .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
+                    // 顶部按钮栏
+                    topButtonBar
+                    
                     // 搜索栏
                     searchBar
                     
@@ -139,24 +142,6 @@ struct VoiceContentView: View {
             }
             .navigationTitle("语音内容")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("完成") {
-                        dismiss()
-                    }
-                    .foregroundColor(.cyan)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        // 刷新内容
-                        refreshContent()
-                    }) {
-                        Image(systemName: "arrow.clockwise")
-                            .foregroundColor(.cyan)
-                    }
-                }
-            }
             .sheet(isPresented: $showingPlaybackControls) {
                 if let content = currentlyPlaying {
                     PlaybackControlView(
@@ -176,6 +161,37 @@ struct VoiceContentView: View {
         .onDisappear {
             stopPlayback()
         }
+    }
+    
+    // MARK: - 顶部按钮栏
+    private var topButtonBar: some View {
+        HStack {
+            // 完成按钮
+            Button(action: {
+                dismiss()
+            }) {
+                Text("完成")
+                    .font(.headline)
+                    .foregroundColor(.cyan)
+            }
+            
+            Spacer()
+            
+            // 刷新按钮
+            Button(action: {
+                refreshContent()
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.clockwise")
+                    Text("刷新内容")
+                }
+                .font(.headline)
+                .foregroundColor(.cyan)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 5)
     }
     
     // MARK: - 搜索栏

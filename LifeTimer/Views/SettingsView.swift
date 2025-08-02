@@ -87,21 +87,35 @@ struct SettingsView: View {
                     Section {
                         versionInfoRow
                     }
+                    
+                    // 完成按钮
+                    Section {
+                        Button(action: {
+                            dismiss()
+                        }) {
+                            HStack {
+                                Spacer()
+                                Text("完成")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.black)
+                                Spacer()
+                            }
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.cyan)
+                            )
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    }
                 }
                 .scrollContentBackground(.hidden)
                 .background(Color.clear)
             }
             .navigationTitle("设置")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
-                    .accessibilityLabel("完成设置")
-                }
-            }
             .onAppear {
                 checkNotificationPermission()
             }

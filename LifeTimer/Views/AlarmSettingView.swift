@@ -59,29 +59,17 @@ struct AlarmSettingView: View {
                         
                         // 启用状态
                         enabledSection
+                        
+                        // 操作按钮
+                        actionButtonsSection
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
+                    .padding(.bottom, 40)
                 }
             }
             .navigationTitle(isEditMode ? "编辑闹钟" : "新建闹钟")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("保存") {
-                        saveAlarm()
-                    }
-                    .foregroundColor(.cyan)
-                    .fontWeight(.semibold)
-                }
-            }
         }
         .preferredColorScheme(.dark)
         .onAppear {
@@ -298,6 +286,48 @@ struct AlarmSettingView: View {
                     )
             )
         }
+    }
+    
+    // MARK: - 操作按钮部分
+    private var actionButtonsSection: some View {
+        HStack(spacing: 16) {
+            // 取消按钮
+            Button(action: {
+                dismiss()
+            }) {
+                Text("取消")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+            }
+            
+            // 保存按钮
+            Button(action: {
+                saveAlarm()
+            }) {
+                Text("保存")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.cyan)
+                    )
+            }
+        }
+        .padding(.top, 8)
     }
     
     // MARK: - 重复模式按钮

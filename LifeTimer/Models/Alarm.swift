@@ -11,7 +11,7 @@ import SwiftUI
 
 // MARK: - 闹钟数据模型
 struct Alarm: Identifiable, Codable {
-    let id = UUID()
+    var id: UUID
     var hour: Int
     var minute: Int
     var repeatMode: RepeatMode
@@ -22,6 +22,7 @@ struct Alarm: Identifiable, Codable {
     
     // MARK: - 初始化
     init(hour: Int = 7, minute: Int = 0, repeatMode: RepeatMode = .weekdays, isEnabled: Bool = true, volume: Double = 0.8) {
+        self.id = UUID()
         self.hour = hour
         self.minute = minute
         self.repeatMode = repeatMode

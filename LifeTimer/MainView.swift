@@ -8,6 +8,7 @@
 
 import SwiftUI
 import UserNotifications
+import UIKit
 
 // MARK: - 主页面视图
 struct MainView: View {
@@ -57,51 +58,35 @@ struct MainView: View {
             }
             .navigationTitle("LifeTimer")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Menu {
-                        Button("检查通知权限") {
-                            alarmStore.checkNotificationPermission()
-                        }
-                        
-                        Button("检查待处理通知") {
-                            alarmStore.checkPendingNotifications()
-                        }
-                        
-                        Button("测试闹钟响起") {
-                            testAlarmRinging()
-                        }
-                        
-                        Button("检查错过的闹钟") {
-                            checkForMissedAlarms()
-                        }
-                        
-                        Button("创建1分钟后测试闹钟") {
-                            createTestAlarm()
-                        }
-                    } label: {
-                        Image(systemName: "info.circle")
-                            .foregroundColor(.white)
-                            .font(.title2)
-                    }
-                    .accessibilityLabel("调试菜单")
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingSettings = true
-                    }) {
-                        Image(systemName: "gearshape.fill")
-                            .foregroundColor(.white)
-                            .font(.title2)
-                    }
-                    .accessibilityLabel("设置")
-                }
-            }
             .overlay(
-                // 浮动添加按钮
+                // 浮动按钮区域
                 VStack {
+                    HStack {
+                        Spacer()
+                        // 设置按钮
+                        Button(action: {
+                            showingSettings = true
+                        }) {
+                            Image(systemName: "gearshape.fill")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(
+                                    Circle()
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(
+                                            Circle()
+                                                .stroke(Color.cyan.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                        }
+                        .padding(.trailing, 24)
+                        .padding(.top, 20)
+                        .accessibilityLabel("设置")
+                    }
+                    
                     Spacer()
+                    
                     HStack {
                         Spacer()
                         FloatingAddButton {
@@ -126,9 +111,39 @@ struct MainView: View {
                 .environmentObject(alarmStore)
         }
         .fullScreenCover(isPresented: $showingAlarmRinging) {
-            if let alarm = ringingAlarm {
+            // 使用局部变量保存闹钟数据，避免在显示期间被清空
+            let alarmToShow = ringingAlarm
+            
+            if let alarm = alarmToShow {
                 AlarmRingingView(isPresented: $showingAlarmRinging, alarm: alarm)
                     .environmentObject(alarmStore)
+                    .onAppear {
+                        print("🎬 fullScreenCover 被触发")
+                        print("📊 showingAlarmRinging: \(showingAlarmRinging)")
+                        print("📊 ringingAlarm: \(alarm.timeString)")
+                        print("✅ 创建 AlarmRingingView")
+                    }
+            } else {
+                // 如果没有闹钟数据，创建一个当前时间的临时闹钟
+                let now = Date()
+                let calendar = Calendar.current
+                let hour = calendar.component(.hour, from: now)
+                let minute = calendar.component(.minute, from: now)
+                
+                let fallbackAlarm = Alarm(
+                    hour: hour,
+                    minute: minute,
+                    repeatMode: .once,
+                    isEnabled: true,
+                    volume: 0.8
+                )
+                
+                AlarmRingingView(isPresented: $showingAlarmRinging, alarm: fallbackAlarm)
+                    .environmentObject(alarmStore)
+                    .onAppear {
+                        print("⚠️ 使用备用闹钟数据显示界面")
+                        print("📊 备用闹钟时间: \(fallbackAlarm.timeString)")
+                    }
             }
         }
         .onAppear {
@@ -169,17 +184,68 @@ struct MainView: View {
             
             if let alarmId = notification.object as? String {
                 print("🔍 查找闹钟 ID: \(alarmId)")
+                print("📊 当前闹钟总数: \(self.alarmStore.alarms.count)")
                 
-                if let alarm = alarmStore.alarms.first(where: { $0.id.uuidString == alarmId }) {
+                // 打印所有闹钟的ID用于调试
+                for (index, alarm) in self.alarmStore.alarms.enumerated() {
+                    print("📋 闹钟[\(index)]: ID=\(alarm.id.uuidString), 时间=\(alarm.timeString), 启用=\(alarm.isEnabled)")
+                }
+                
+                // 查找匹配的闹钟
+                if let alarm = self.alarmStore.alarms.first(where: { $0.id.uuidString == alarmId }) {
                     print("✅ 找到匹配的闹钟: \(alarm.timeString)")
-                    ringingAlarm = alarm
-                    showingAlarmRinging = true
-                    print("🎵 闹钟响起界面已显示")
+                    
+                    // 确保在主线程上原子性地设置状态
+                    DispatchQueue.main.async {
+                        print("🔄 在主线程设置闹钟状态")
+                        self.ringingAlarm = alarm
+                        print("📱 ringingAlarm 已设置: \(alarm.timeString)")
+                        self.showingAlarmRinging = true
+                        print("🎵 showingAlarmRinging 已设置为 true")
+                        print("🎵 闹钟响起界面已显示")
+                    }
                 } else {
                     print("❌ 未找到匹配的闹钟")
+                    print("🔍 尝试使用部分匹配查找...")
+                    
+                    // 尝试部分匹配（前8位）
+                    let shortId = String(alarmId.prefix(8))
+                    if let alarm = self.alarmStore.alarms.first(where: { $0.id.uuidString.hasPrefix(shortId) }) {
+                        print("✅ 通过部分匹配找到闹钟: \(alarm.timeString)")
+                        
+                        DispatchQueue.main.async {
+                            self.ringingAlarm = alarm
+                            self.showingAlarmRinging = true
+                            print("🎵 通过部分匹配显示闹钟界面")
+                        }
+                    } else {
+                        print("❌ 部分匹配也未找到闹钟")
+                        
+                        // 如果找不到闹钟，创建一个临时闹钟用于显示
+                        let now = Date()
+                        let calendar = Calendar.current
+                        let hour = calendar.component(.hour, from: now)
+                        let minute = calendar.component(.minute, from: now)
+                        
+                        let tempAlarm = Alarm(
+                            hour: hour,
+                            minute: minute,
+                            repeatMode: .once,
+                            isEnabled: true,
+                            volume: 0.8
+                        )
+                        
+                        print("🆘 创建临时闹钟用于显示: \(tempAlarm.timeString)")
+                        
+                        DispatchQueue.main.async {
+                            self.ringingAlarm = tempAlarm
+                            self.showingAlarmRinging = true
+                            print("🎵 使用临时闹钟显示界面")
+                        }
+                    }
                 }
             } else {
-                print("❌ 通知对象不是字符串类型")
+                print("❌ 通知对象不是字符串类型: \(String(describing: notification.object))")
             }
         }
         
@@ -189,8 +255,17 @@ struct MainView: View {
             object: nil,
             queue: .main
         ) { notification in
-            showingAlarmRinging = false
-            ringingAlarm = nil
+            print("🛑 收到闹钟停止通知")
+            
+            // 如果当前有响铃的闹钟且是一次性闹钟，则禁用它
+            if let currentAlarm = self.ringingAlarm, currentAlarm.repeatMode == .once {
+                print("⏸️ 禁用一次性闹钟: \(currentAlarm.timeString)")
+                self.alarmStore.toggleAlarm(currentAlarm)
+            }
+            
+            self.showingAlarmRinging = false
+            self.ringingAlarm = nil
+            print("✅ 闹钟界面已关闭")
         }
         
         // 监听闹钟稍后提醒通知
@@ -199,13 +274,18 @@ struct MainView: View {
             object: nil,
             queue: .main
         ) { notification in
+            print("😴 收到稍后提醒通知")
+            
             if let alarmId = notification.object as? String,
-               let alarm = alarmStore.alarms.first(where: { $0.id.uuidString == alarmId }) {
+               let alarm = self.alarmStore.alarms.first(where: { $0.id.uuidString == alarmId }) {
                 // 设置5分钟后的稍后提醒
-                scheduleSnoozeAlarm(for: alarm)
+                self.scheduleSnoozeAlarm(for: alarm)
+                print("⏰ 已设置5分钟后提醒")
             }
-            showingAlarmRinging = false
-            ringingAlarm = nil
+            
+            self.showingAlarmRinging = false
+            self.ringingAlarm = nil
+            print("✅ 闹钟界面已关闭，稍后提醒已设置")
         }
     }
     
@@ -256,7 +336,7 @@ struct MainView: View {
         print("⏰ 闹钟检查定时器已停止")
     }
     
-    // MARK: - 测试功能
+    // MARK: - 测	试功能
     private func testAlarmRinging() {
         // 创建一个测试闹钟
         let testAlarm = Alarm(hour: Calendar.current.component(.hour, from: Date()),
@@ -272,6 +352,28 @@ struct MainView: View {
         showingAlarmRinging = true
         
         print("✅ 测试闹钟界面已触发")
+    }
+    
+    private func directShowAlarmRinging() {
+        print("🎯 直接显示闹钟页面测试")
+        
+        // 创建一个测试闹钟
+        let testAlarm = Alarm(
+            hour: Calendar.current.component(.hour, from: Date()),
+            minute: Calendar.current.component(.minute, from: Date()),
+            repeatMode: .once,
+            isEnabled: true,
+            volume: 0.8
+        )
+        
+        print("📱 测试闹钟: \(testAlarm.timeString)")
+        print("🔊 音量: \(testAlarm.volume)")
+        
+        DispatchQueue.main.async {
+            self.ringingAlarm = testAlarm
+            self.showingAlarmRinging = true
+            print("✅ 闹钟页面应该已显示")
+        }
     }
     
     // MARK: - 创建测试闹钟
@@ -333,11 +435,8 @@ struct MainView: View {
                     ringingAlarm = alarm
                     showingAlarmRinging = true
                     
-                    // 如果是一次性闹钟，触发后禁用
-                    if alarm.repeatMode == .once {
-                        alarmStore.toggleAlarm(alarm)
-                        print("   ⏸️ 一次性闹钟已自动禁用")
-                    }
+                    // 注意：不在这里禁用一次性闹钟，而是在闹钟停止时处理
+                    print("   ✅ 闹钟界面已显示，等待用户操作")
                     
                     return
                 } else if timeDifference > 120 {
@@ -448,38 +547,43 @@ struct AlarmCardView: View {
     let onEdit: () -> Void
     
     var body: some View {
-        Button(action: onEdit) {
-            HStack(spacing: 16) {
-                // 时间显示
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(alarm.timeString)
-                        .font(.system(size: 32, weight: .light, design: .default))
-                        .foregroundColor(.white)
-                    
-                    Text(alarm.repeatModeDescription)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
+        let cardContent = HStack(spacing: 16) {
+            // 时间显示
+            VStack(alignment: .leading, spacing: 4) {
+                Text(alarm.timeString)
+                    .font(.system(size: 32, weight: .light, design: .default))
+                    .foregroundColor(.white)
                 
-                Spacer()
-                
-                // 开关
-                Toggle("", isOn: Binding(
-                    get: { alarm.isEnabled },
-                    set: { _ in onToggle() }
-                ))
-                .toggleStyle(CustomToggleStyle())
-                .accessibilityLabel(alarm.isEnabled ? "关闭闹钟" : "开启闹钟")
+                Text(alarm.repeatModeDescription)
+                    .font(.caption)
+                    .foregroundColor(.gray)
             }
-            .padding(20)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.white.opacity(alarm.isEnabled ? 0.15 : 0.08))
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.white.opacity(alarm.isEnabled ? 0.3 : 0.1), lineWidth: 1)
-                    )
-            )
+            
+            Spacer()
+            
+            // 开关
+            Toggle("", isOn: Binding(
+                get: { alarm.isEnabled },
+                set: { _ in onToggle() }
+            ))
+            .toggleStyle(CustomToggleStyle())
+            .accessibilityLabel(alarm.isEnabled ? "关闭闹钟" : "开启闹钟")
+        }
+        .padding(20)
+        
+        let backgroundOpacity = alarm.isEnabled ? 0.15 : 0.08
+        let strokeOpacity = alarm.isEnabled ? 0.3 : 0.1
+        
+        return Button(action: onEdit) {
+            cardContent
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.white.opacity(backgroundOpacity))
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.white.opacity(strokeOpacity), lineWidth: 1)
+                        )
+                )
         }
         .buttonStyle(PlainButtonStyle())
         .accessibilityElement(children: .combine)
