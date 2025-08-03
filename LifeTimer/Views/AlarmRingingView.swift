@@ -37,6 +37,8 @@ struct AlarmRingingView: View {
         ("美好开始", "新的一天，新的机会，让我们创造属于自己的精彩！")
     ]
     
+
+    
     // MARK: - 计算属性
     
     private var timeFormatter: DateFormatter {
@@ -200,9 +202,56 @@ struct AlarmRingingView: View {
                                 .transition(.opacity.combined(with: .scale))
                             }
                         }
-                    .padding(.horizontal, 24)
+                        .padding(.horizontal, 24)
+                    }
+                    .padding(.bottom, 40)
+                    
+                    Spacer()
+                    
+                    // 操作按钮区域
+                    VStack(spacing: 16) {
+                        
+                        // 关闭闹钟按钮
+                        Button(action: dismissAlarm) {
+                            Text("关闭闹钟")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(Color.red.opacity(0.8))
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                        )
+                                )
+                        }
+                        .accessibilityLabel("关闭闹钟")
+                        
+                        // 稍后提醒按钮
+                        Button(action: snoozeAlarm) {
+                            Text("稍后提醒")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(Color.orange.opacity(0.8))
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                        )
+                                )
+                        }
+                        .accessibilityLabel("稍后提醒")
+                    }
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, max(geometry.safeAreaInsets.bottom, 20) + 30)
                 }
-                .padding(.bottom, 40)
                 
                 // 调试信息（可选显示）
                 if showDebugInfo {
@@ -248,71 +297,15 @@ struct AlarmRingingView: View {
                         Button(action: {
                             showingVolumeControl.toggle()
                         }) {
-                            Image(systemName: "speaker.wave.2.fill")
+                            Image(systemName: volume > 0.5 ? "speaker.wave.2.fill" : (volume > 0 ? "speaker.wave.1.fill" : "speaker.slash.fill"))
                                 .font(.title2)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.white.opacity(0.6))
                         }
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 12)
+                    .padding(.horizontal, 20)
+                    .padding(.top, geometry.safeAreaInsets.top + 8)
                     
                     Spacer()
-                }
-                
-                Spacer()
-                
-                // 操作按钮区域
-                    VStack(spacing: 16) {
-                        // 关闭闹钟按钮
-                        Button(action: dismissAlarm) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "alarm.fill")
-                                    .font(.title3)
-                                
-                                Text("关闭闹钟")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.red.opacity(0.8))
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                                    )
-                            )
-                        }
-                        .accessibilityLabel("关闭闹钟")
-                        
-                        // 稍后提醒按钮
-                        Button(action: snoozeAlarm) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "clock.arrow.2.circlepath")
-                                    .font(.title3)
-                                
-                                Text("稍后提醒 (5分钟)")
-                                    .font(.headline)
-                                    .fontWeight(.medium)
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.orange.opacity(0.8))
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                                    )
-                            )
-                        }
-                        .accessibilityLabel("稍后提醒")
-                    }
-                    .padding(.horizontal, 32)
-                    .padding(.bottom, max(geometry.safeAreaInsets.bottom, 20) + 30)
                 }
             }
         }
@@ -373,8 +366,8 @@ struct AlarmRingingView: View {
         }
         
         // 尝试加载音频文件
-        guard let audioURL = Bundle.main.url(forResource: "sample", withExtension: "mp3") else {
-            print("❌ 找不到音频文件 sample.mp3")
+        guard let audioURL = Bundle.main.url(forResource: "sample", withExtension: "flac") else {
+            print("❌ 找不到音频文件 sample.flac")
             print("🔄 尝试使用系统默认声音")
             setupSystemSound()
             return
@@ -645,8 +638,8 @@ struct AlarmRingingView: View {
         print("📁 Bundle路径: \(bundle.bundlePath)")
         
         // 尝试不同的方式查找音频文件
-        let possibleNames = ["sample", "sample.mp3"]
-        let possibleExtensions = ["mp3", "wav", "m4a", ""]
+        let possibleNames = ["sample", "sample.flac"]
+        let possibleExtensions = ["flac", "mp3", "wav", "m4a", ""]
         
         for name in possibleNames {
             for ext in possibleExtensions {
@@ -674,6 +667,7 @@ struct AlarmRingingView: View {
             print("📂 Bundle根目录内容:")
             for file in contents.sorted() {
                 if file.lowercased().contains("sample") || 
+                   file.hasSuffix(".flac") ||
                    file.hasSuffix(".mp3") || 
                    file.hasSuffix(".wav") || 
                    file.hasSuffix(".m4a") {

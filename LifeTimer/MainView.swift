@@ -516,27 +516,56 @@ struct AlarmListView: View {
     let onDelete: (Alarm) -> Void
     
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(alarms) { alarm in
-                    AlarmCardView(
-                        alarm: alarm,
-                        onToggle: { onToggle(alarm) },
-                        onEdit: { onEdit(alarm) }
-                    )
-                    .contextMenu {
-                        Button(action: { onEdit(alarm) }) {
-                            Label("编辑", systemImage: "pencil")
-                        }
+        List {
+            ForEach(alarms) { alarm in
+                AlarmCardView(
+                    alarm: alarm,
+                    onToggle: { onToggle(alarm) },
+                    onEdit: { onEdit(alarm) }
+                )
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    // 删除按钮
+                    Button(role: .destructive) {
+                        // 添加触觉反馈
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                        impactFeedback.impactOccurred()
                         
-                        Button(role: .destructive, action: { onDelete(alarm) }) {
-                            Label("删除", systemImage: "trash")
-                        }
+                        // 执行删除
+                        onDelete(alarm)
+                    } label: {
+                        Label("删除", systemImage: "trash")
+                    }
+                    .tint(.red)
+                    
+                    // 编辑按钮
+                    Button {
+                        // 添加触觉反馈
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                        impactFeedback.impactOccurred()
+                        
+                        onEdit(alarm)
+                    } label: {
+                        Label("编辑", systemImage: "pencil")
+                    }
+                    .tint(.blue)
+                }
+                .contextMenu {
+                    Button(action: { onEdit(alarm) }) {
+                        Label("编辑", systemImage: "pencil")
+                    }
+                    
+                    Button(role: .destructive, action: { onDelete(alarm) }) {
+                        Label("删除", systemImage: "trash")
                     }
                 }
             }
-            .padding(.horizontal)
         }
+        .listStyle(PlainListStyle())
+        .scrollContentBackground(.hidden)
+        .background(Color.clear)
     }
 }
 
