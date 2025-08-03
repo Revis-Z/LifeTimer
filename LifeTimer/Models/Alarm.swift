@@ -21,7 +21,7 @@ struct Alarm: Identifiable, Codable {
     var modifiedAt: Date
     
     // MARK: - 初始化
-    init(hour: Int = 7, minute: Int = 0, repeatMode: RepeatMode = .weekdays, isEnabled: Bool = true, volume: Double = 0.8) {
+    init(hour: Int = 7, minute: Int = 0, repeatMode: RepeatMode = .daily, isEnabled: Bool = true, volume: Double = 0.8) {
         self.id = UUID()
         self.hour = hour
         self.minute = minute
@@ -77,14 +77,6 @@ struct Alarm: Identifiable, Codable {
                 return calendar.date(byAdding: .day, value: 1, to: todayAlarmTime)
             }
             
-        case .weekdays:
-            // 工作日重复 (周一到周五)
-            return nextWeekdayAlarmDate(from: todayAlarmTime, calendar: calendar, now: now)
-            
-        case .weekends:
-            // 周末重复 (周六和周日)
-            return nextWeekendAlarmDate(from: todayAlarmTime, calendar: calendar, now: now)
-            
         case .custom(let weekdays):
             // 自定义重复
             return nextCustomAlarmDate(from: todayAlarmTime, calendar: calendar, now: now, weekdays: weekdays)
@@ -92,16 +84,6 @@ struct Alarm: Identifiable, Codable {
     }
     
     // MARK: - 私有方法
-    
-    private func nextWeekdayAlarmDate(from alarmTime: Date, calendar: Calendar, now: Date) -> Date? {
-        let weekdays = [2, 3, 4, 5, 6] // 周一到周五
-        return nextAlarmDate(from: alarmTime, calendar: calendar, now: now, targetWeekdays: weekdays)
-    }
-    
-    private func nextWeekendAlarmDate(from alarmTime: Date, calendar: Calendar, now: Date) -> Date? {
-        let weekends = [1, 7] // 周日和周六
-        return nextAlarmDate(from: alarmTime, calendar: calendar, now: now, targetWeekdays: weekends)
-    }
     
     private func nextCustomAlarmDate(from alarmTime: Date, calendar: Calendar, now: Date, weekdays: Set<Int>) -> Date? {
         let targetWeekdays = Array(weekdays).sorted()
@@ -134,13 +116,11 @@ struct Alarm: Identifiable, Codable {
 enum RepeatMode: Codable, CaseIterable, Equatable {
     case once           // 仅一次
     case daily          // 每天
-    case weekdays       // 工作日 (周一到周五)
-    case weekends       // 周末 (周六、周日)
     case custom(Set<Int>) // 自定义 (1=周日, 2=周一, ..., 7=周六)
     
     // 为了支持CaseIterable，提供所有非关联值的case
     static var allCases: [RepeatMode] {
-        return [.once, .daily, .weekdays, .weekends]
+        return [.once, .daily]
     }
     
     var description: String {
@@ -149,10 +129,6 @@ enum RepeatMode: Codable, CaseIterable, Equatable {
             return "仅一次"
         case .daily:
             return "每天"
-        case .weekdays:
-            return "工作日"
-        case .weekends:
-            return "周末"
         case .custom(let weekdays):
             if weekdays.isEmpty {
                 return "从不"
@@ -169,10 +145,6 @@ enum RepeatMode: Codable, CaseIterable, Equatable {
             return "一次"
         case .daily:
             return "每天"
-        case .weekdays:
-            return "工作日"
-        case .weekends:
-            return "周末"
         case .custom:
             return "自定义"
         }
@@ -184,9 +156,9 @@ extension Alarm {
     /// 创建用于测试的示例闹钟
     static var sampleAlarms: [Alarm] {
         [
-            Alarm(hour: 7, minute: 0, repeatMode: .weekdays, isEnabled: true, volume: 0.8),
+            Alarm(hour: 7, minute: 0, repeatMode: .daily, isEnabled: true, volume: 0.8),
             Alarm(hour: 8, minute: 30, repeatMode: .daily, isEnabled: false, volume: 0.6),
-            Alarm(hour: 9, minute: 15, repeatMode: .weekends, isEnabled: true, volume: 0.9),
+            Alarm(hour: 9, minute: 15, repeatMode: .custom([2, 3, 4, 5, 6]), isEnabled: true, volume: 0.9),
             Alarm(hour: 22, minute: 0, repeatMode: .once, isEnabled: true, volume: 0.7)
         ]
     }

@@ -187,8 +187,8 @@ class AlarmStore: ObservableObject {
     
     private func addSampleAlarms() {
         let sampleAlarms = [
-            Alarm(hour: 7, minute: 0, repeatMode: .weekdays, isEnabled: true, volume: 0.8),
-            Alarm(hour: 9, minute: 0, repeatMode: .weekends, isEnabled: false, volume: 0.7)
+            Alarm(hour: 7, minute: 0, repeatMode: .daily, isEnabled: true, volume: 0.8),
+            Alarm(hour: 9, minute: 0, repeatMode: .once, isEnabled: false, volume: 0.7)
         ]
         
         for alarm in sampleAlarms {

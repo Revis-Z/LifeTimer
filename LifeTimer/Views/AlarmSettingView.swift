@@ -7,7 +7,6 @@
 //
 
 import SwiftUI
-import AVFoundation
 
 struct AlarmSettingView: View {
     @Environment(\.dismiss) private var dismiss
@@ -18,14 +17,12 @@ struct AlarmSettingView: View {
     
     // 编辑状态
     @State private var selectedTime = Date()
-    @State private var selectedRepeatMode: RepeatMode = .weekdays
-    @State private var isEnabled = true
+    @State private var selectedRepeatMode: RepeatMode = .daily
     @State private var volume: Double = 0.8
     @State private var customWeekdays: Set<Int> = []
     
     // UI状态
     @State private var showingCustomRepeat = false
-    @State private var audioPlayer: AVAudioPlayer?
     
     // 是否为编辑模式
     private var isEditMode: Bool {
@@ -57,8 +54,7 @@ struct AlarmSettingView: View {
                         // 音量控制
                         volumeSection
                         
-                        // 启用状态
-                        enabledSection
+
                         
                         // 操作按钮
                         actionButtonsSection
@@ -136,7 +132,7 @@ struct AlarmSettingView: View {
             VStack(spacing: 12) {
                 // 预设重复模式
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
-                    ForEach(RepeatMode.allCases, id: \.description) { mode in
+                    ForEach([RepeatMode.once, RepeatMode.daily], id: \.description) { mode in
                         repeatModeButton(mode)
                     }
                 }
@@ -226,26 +222,9 @@ struct AlarmSettingView: View {
                             .foregroundColor(.cyan)
                     }
                     .accentColor(.cyan)
-                    .onChange(of: volume) {
-                        playVolumePreview()
-                    }
                 }
                 
-                // 测试音量按钮
-                Button(action: playVolumePreview) {
-                    HStack {
-                        Image(systemName: "play.circle")
-                        Text("试听音量")
-                    }
-                    .font(.subheadline)
-                    .foregroundColor(.cyan)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
-                    .background(
-                        Capsule()
-                            .fill(Color.cyan.opacity(0.2))
-                    )
-                }
+
             }
             .padding(16)
             .background(
@@ -259,34 +238,7 @@ struct AlarmSettingView: View {
         }
     }
     
-    // MARK: - 启用状态部分
-    private var enabledSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: isEnabled ? "bell" : "bell.slash")
-                    .foregroundColor(.cyan)
-                    .font(.title2)
-                
-                Text("启用闹钟")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Toggle("", isOn: $isEnabled)
-                    .toggleStyle(SwitchToggleStyle(tint: .cyan))
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.cyan.opacity(0.3), lineWidth: 1)
-                    )
-            )
-        }
-    }
+
     
     // MARK: - 操作按钮部分
     private var actionButtonsSection: some View {
@@ -377,7 +329,6 @@ struct AlarmSettingView: View {
             selectedTime = calendar.date(from: components) ?? Date()
             
             selectedRepeatMode = existingAlarm.repeatMode
-            isEnabled = existingAlarm.isEnabled
             volume = existingAlarm.volume
             
             if case .custom(let weekdays) = existingAlarm.repeatMode {
@@ -410,8 +361,8 @@ struct AlarmSettingView: View {
             updatedAlarm.hour = components.hour ?? 7
             updatedAlarm.minute = components.minute ?? 0
             updatedAlarm.repeatMode = finalRepeatMode
-            updatedAlarm.isEnabled = isEnabled
             updatedAlarm.volume = volume
+            updatedAlarm.isEnabled = true  // 保存后自动启用闹钟
             
             alarmStore.updateAlarm(updatedAlarm)
         } else {
@@ -420,7 +371,7 @@ struct AlarmSettingView: View {
                 hour: components.hour ?? 7,
                 minute: components.minute ?? 0,
                 repeatMode: finalRepeatMode,
-                isEnabled: isEnabled,
+                isEnabled: true,
                 volume: volume
             )
             
@@ -434,28 +385,7 @@ struct AlarmSettingView: View {
         dismiss()
     }
     
-    private func playVolumePreview() {
-        // 播放系统提示音进行音量预览
-        guard let soundURL = Bundle.main.url(forResource: "preview_sound", withExtension: "wav") ??
-                Bundle.main.url(forResource: "Submarine", withExtension: "aiff") else {
-            // 如果没有找到音频文件，使用系统音效
-            AudioServicesPlaySystemSound(1005) // 系统提示音
-            return
-        }
-        
-        do {
-            audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
-            audioPlayer?.volume = Float(volume)
-            audioPlayer?.play()
-        } catch {
-            // 播放失败时使用系统音效
-            AudioServicesPlaySystemSound(1005)
-        }
-        
-        // 触觉反馈
-        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-        impactFeedback.impactOccurred()
-    }
+
 }
 
 // MARK: - 自定义重复选择视图
