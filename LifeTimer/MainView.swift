@@ -54,49 +54,20 @@ struct MainView: View {
                     }
                     
                     Spacer()
+                    
+                    // 底部导航栏
+                    BottomNavigationBar(
+                        onSettingsTapped: {
+                            showingSettings = true
+                        },
+                        onAddAlarmTapped: {
+                            showingNewAlarm = true
+                        }
+                    )
                 }
             }
             .navigationTitle("LifeTimer")
             .navigationBarTitleDisplayMode(.large)
-            .overlay(
-                // 浮动按钮区域
-                VStack {
-                    HStack {
-                        Spacer()
-                        // 设置按钮
-                        Button(action: {
-                            showingSettings = true
-                        }) {
-                            Image(systemName: "gearshape.fill")
-                                .font(.title2)
-                                .foregroundColor(.white)
-                                .frame(width: 44, height: 44)
-                                .background(
-                                    Circle()
-                                        .fill(.ultraThinMaterial)
-                                        .overlay(
-                                            Circle()
-                                                .stroke(Color.cyan.opacity(0.3), lineWidth: 1)
-                                        )
-                                )
-                        }
-                        .padding(.trailing, 24)
-                        .padding(.top, 20)
-                        .accessibilityLabel("设置")
-                    }
-                    
-                    Spacer()
-                    
-                    HStack {
-                        Spacer()
-                        FloatingAddButton {
-                            showingNewAlarm = true
-                        }
-                        .padding(.trailing, 24)
-                        .padding(.bottom, 34)
-                    }
-                }
-            )
         }
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showingSettings) {
@@ -647,38 +618,118 @@ struct CustomToggleStyle: ToggleStyle {
     }
 }
 
-// MARK: - 浮动添加按钮
-struct FloatingAddButton: View {
-    let action: () -> Void
-    @State private var isPressed = false
+// MARK: - 底部导航栏
+struct BottomNavigationBar: View {
+    let onSettingsTapped: () -> Void
+    let onAddAlarmTapped: () -> Void
     
     var body: some View {
-        Button(action: action) {
-            Image(systemName: "plus")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundColor(.white)
-                .frame(width: 56, height: 56)
-                .background(
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                gradient: Gradient(colors: [Color.blue, Color.purple]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+        HStack(spacing: 0) {
+            // Home 按钮
+            TabBarButton(
+                icon: "house",
+                title: "Home",
+                isSelected: true,
+                action: {}
+            )
+            
+            // Discover 按钮
+            TabBarButton(
+                icon: "square.grid.2x2",
+                title: "Discover",
+                isSelected: false,
+                action: {}
+            )
+            
+            // 中央添加按钮
+            Button(action: {
+                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                impactFeedback.impactOccurred()
+                onAddAlarmTapped()
+            }) {
+                Image(systemName: "plus")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 56, height: 56)
+                    .background(
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.6, green: 0.5, blue: 1.0),
+                                        Color(red: 0.4, green: 0.3, blue: 0.9)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
-                        .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
-                )
-                .scaleEffect(isPressed ? 0.95 : 1.0)
+                    )
+            }
+            .buttonStyle(ScaleButtonStyle())
+            
+            // Insights 按钮
+            TabBarButton(
+                icon: "chart.bar",
+                title: "Insights",
+                isSelected: false,
+                action: {}
+            )
+            
+            // Profile 按钮
+            TabBarButton(
+                icon: "person",
+                title: "Profile",
+                isSelected: false,
+                action: onSettingsTapped
+            )
+        }
+        .frame(height: 88)
+        .background(
+            // 深色背景，类似截图
+            RoundedRectangle(cornerRadius: 28)
+                .fill(Color(red: 0.15, green: 0.15, blue: 0.2))
+                .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
+    }
+}
+
+// MARK: - 标签栏按钮
+struct TabBarButton: View {
+    let icon: String
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+            action()
+        }) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(isSelected ? Color(red: 0.5, green: 0.4, blue: 1.0) : Color.gray)
+                
+                Text(title)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(isSelected ? Color(red: 0.5, green: 0.4, blue: 1.0) : Color.gray)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 60)
         }
         .buttonStyle(PlainButtonStyle())
-        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
-            withAnimation(.easeInOut(duration: 0.1)) {
-                isPressed = pressing
-            }
-        }, perform: {})
-        .accessibilityLabel("添加新闹钟")
+    }
+}
+
+// MARK: - 按钮缩放样式
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
 }
 

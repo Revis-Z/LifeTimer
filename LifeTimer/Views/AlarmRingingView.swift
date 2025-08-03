@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import AVFoundation
+import AVKit
 import AudioToolbox
 import Combine
 
@@ -17,14 +18,14 @@ struct AlarmRingingView: View {
     @State private var timer: Timer?
     @State private var progressTimer: Timer?
     @State private var systemSoundTimer: Timer?
-    @State private var showingVolumeControl = false
-    @State private var volume: Float = 0.7
     @State private var isViewLoaded = false
     @State private var showDebugInfo = false
     @State private var audioDelegate: AudioPlayerDelegate?
+    @State private var videoPlayer: AVQueuePlayer?
+    @State private var playerLooper: AVPlayerLooper?
     
     // 励志语音内容数组
-    private let motivationalAudios = [
+    let motivationalAudios = [
         ("早安激励", "每一个清晨都是新的开始，今天的你比昨天更强大！"),
         ("成功启程", "成功属于那些敢于追梦的人，今天就是你追梦的日子！"),
         ("积极能量", "用积极的心态迎接新的一天，你的笑容就是最好的阳光！"),
@@ -37,220 +38,193 @@ struct AlarmRingingView: View {
         ("美好开始", "新的一天，新的机会，让我们创造属于自己的精彩！")
     ]
     
-
-    
     // MARK: - 计算属性
     
-    private var timeFormatter: DateFormatter {
+    var timeFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         formatter.locale = Locale.current
         return formatter
     }
     
-    private var dateFormatter: DateFormatter {
+    var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.dateStyle = .full
         formatter.locale = Locale.current
         return formatter
     }
     
+    var currentAudio: (String, String) {
+        let index = Int(currentTime.timeIntervalSince1970) % motivationalAudios.count
+        return motivationalAudios[index]
+    }
+    
+    // MARK: - 格式化方法
+    
+    func formatTimeForDisplay(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.locale = Locale.current
+        return formatter.string(from: date)
+    }
+    
+    func formatDateForDisplay(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, MMMM d"
+        formatter.locale = Locale.current
+        return formatter.string(from: date)
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // 背景渐变
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.05, green: 0.05, blue: 0.15),
-                        Color(red: 0.1, green: 0.1, blue: 0.2),
-                        Color(red: 0.15, green: 0.1, blue: 0.25)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                // 视频背景
+                if let player = videoPlayer {
+                    VideoPlayer(player: player)
+                        .ignoresSafeArea()
+                        .onAppear {
+                            player.play()
+                        }
+                } else {
+                    // 备用背景 - 自然风景风格
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color(red: 0.4, green: 0.5, blue: 0.6),
+                            Color(red: 0.3, green: 0.4, blue: 0.5),
+                            Color(red: 0.2, green: 0.3, blue: 0.4)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
+                }
                 
+                // 主要内容区域
                 VStack(spacing: 0) {
-                    // 顶部时间显示区域
-                    VStack(spacing: 16) {
-                        // 当前时间
-                        Text(timeFormatter.string(from: currentTime))
-                            .font(.system(size: min(geometry.size.width * 0.15, 64), weight: .ultraLight, design: .default))
-                            .foregroundColor(.white)
-                            .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                    // 顶部状态栏区域
+                    HStack {
+                        Spacer()
                         
-                        // 当前日期
-                        Text(dateFormatter.string(from: currentTime))
-                            .font(.title3)
-                            .foregroundColor(.white.opacity(0.8))
-                            .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
+                        // 调试按钮
+                        Button(action: {
+                            showDebugInfo.toggle()
+                        }) {
+                            Image(systemName: "info.circle")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white.opacity(0.6))
+                        }
                     }
-                    .padding(.top, geometry.safeAreaInsets.top + 20)
-                    .padding(.bottom, 40)
+                    .padding(.horizontal, 20)
+                    .padding(.top, geometry.safeAreaInsets.top + 8)
                     
                     Spacer()
                     
-                    // 励志语音播放区域
-                    VStack(spacing: 24) {
-                        // 励志文字显示
-                        Text("准备好迎接美好的一天！")
-                            .font(.title2)
-                            .fontWeight(.medium)
+                    // 中心时间显示区域
+                    VStack(spacing: 16) {
+                        // 主要时间显示 - 参考截图的超大字体
+                        Text(formatTimeForDisplay(currentTime))
+                            .font(.system(size: min(geometry.size.width * 0.25, 120), weight: .ultraLight, design: .default))
                             .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                            .tracking(2) // 字符间距
+                        
+                        // 日期信息
+                         Text(formatDateForDisplay(currentTime))
+                             .font(.system(size: 18, weight: .medium))
+                             .foregroundColor(.white.opacity(0.9))
+                             .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                        
+                        // 励志文字
+                        Text(currentAudio.1)
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white.opacity(0.9))
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                            .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                        
-                        // 播放控制区域
-                        VStack(spacing: 20) {
-                            // 播放控制按钮
-                            HStack(spacing: 32) {
-                                // 重播按钮
-                                Button(action: replayAudio) {
-                                    Image(systemName: "backward.fill")
-                                        .font(.title2)
-                                        .foregroundColor(.white)
-                                        .frame(width: 44, height: 44)
-                                        .background(
-                                            Circle()
-                                                .fill(Color.white.opacity(0.2))
-                                                .background(
-                                                    Circle()
-                                                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                                                )
-                                        )
-                                }
-                                .accessibilityLabel("重播")
-                                
-                                // 播放/暂停按钮
-                                Button(action: togglePlayback) {
-                                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                                        .font(.title)
-                                        .foregroundColor(.white)
-                                        .frame(width: 64, height: 64)
-                                        .background(
-                                            Circle()
-                                                .fill(Color.blue.opacity(0.8))
-                                                .background(
-                                                    Circle()
-                                                        .stroke(Color.white.opacity(0.3), lineWidth: 2)
-                                                )
-                                        )
-                                }
-                                .accessibilityLabel(isPlaying ? "暂停" : "播放")
-                                
-                                // 音量控制按钮
-                                Button(action: {
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        showingVolumeControl.toggle()
-                                    }
-                                }) {
-                                    Image(systemName: volume > 0.5 ? "speaker.wave.2.fill" : (volume > 0 ? "speaker.wave.1.fill" : "speaker.slash.fill"))
-                                        .font(.title2)
-                                        .foregroundColor(.white)
-                                        .frame(width: 44, height: 44)
-                                        .background(
-                                            Circle()
-                                                .fill(Color.white.opacity(0.2))
-                                                .background(
-                                                    Circle()
-                                                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                                                )
-                                        )
-                                }
-                                .accessibilityLabel("音量控制")
-                            }
-                            
-                            // 播放进度条
-                            VStack(spacing: 8) {
-                                ProgressView(value: playbackProgress, total: audioDuration)
-                                    .progressViewStyle(LinearProgressViewStyle(tint: .blue))
-                                    .scaleEffect(y: 2)
-                                    .padding(.horizontal, 40)
-                                
-                                HStack {
-                                    Text(formatTime(playbackProgress))
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                    
-                                    Spacer()
-                                    
-                                    Text(formatTime(audioDuration))
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
-                                .padding(.horizontal, 40)
-                            }
-                            
-                            // 音量控制滑块（可展开）
-                            if showingVolumeControl {
-                                VStack(spacing: 8) {
-                                    Text("音量")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                    
-                                    Slider(value: Binding(
-                                        get: { Double(volume) },
-                                        set: { newValue in
-                                            volume = Float(newValue)
-                                            audioPlayer?.volume = volume
-                                        }
-                                    ), in: 0...1)
-                                    .accentColor(.blue)
-                                    .padding(.horizontal, 40)
-                                }
-                                .transition(.opacity.combined(with: .scale))
-                            }
-                        }
-                        .padding(.horizontal, 24)
+                            .padding(.horizontal, 40)
+                            .padding(.top, 20)
+                            .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
                     }
-                    .padding(.bottom, 40)
                     
                     Spacer()
                     
-                    // 操作按钮区域
-                    VStack(spacing: 16) {
-                        
-                        // 关闭闹钟按钮
-                        Button(action: dismissAlarm) {
-                            Text("关闭闹钟")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(Color.red.opacity(0.8))
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 16)
-                                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                                        )
-                                )
-                        }
-                        .accessibilityLabel("关闭闹钟")
-                        
-                        // 稍后提醒按钮
-                        Button(action: snoozeAlarm) {
-                            Text("稍后提醒")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(Color.orange.opacity(0.8))
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 16)
-                                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                                        )
-                                )
-                        }
-                        .accessibilityLabel("稍后提醒")
-                    }
-                    .padding(.horizontal, 32)
-                    .padding(.bottom, max(geometry.safeAreaInsets.bottom, 20) + 30)
+                    // 底部控制栏 - 集成所有控制功能
+                     VStack(spacing: 16) {
+                         // 媒体播放控制栏
+                         HStack(spacing: 0) {
+                             // 媒体控制按钮组
+                             HStack(spacing: 24) {
+                                 // 上一首按钮
+                                 Button(action: {
+                                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                     impactFeedback.impactOccurred()
+                                 }) {
+                                     Image(systemName: "backward.fill")
+                                         .font(.system(size: 20, weight: .medium))
+                                         .foregroundColor(.white)
+                                 }
+                                 
+                                 // 播放/暂停按钮
+                                 Button(action: togglePlayback) {
+                                     Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                                         .font(.system(size: 24, weight: .medium))
+                                         .foregroundColor(.white)
+                                 }
+                                 
+                                 // 下一首按钮
+                                 Button(action: {
+                                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                     impactFeedback.impactOccurred()
+                                 }) {
+                                     Image(systemName: "forward.fill")
+                                         .font(.system(size: 20, weight: .medium))
+                                         .foregroundColor(.white)
+                                 }
+                             }
+                             
+                             Spacer()
+                         }
+                         .padding(.horizontal, 32)
+                         .padding(.vertical, 16)
+                         .background(
+                             RoundedRectangle(cornerRadius: 24)
+                                 .fill(.ultraThinMaterial.opacity(0.8))
+                                 .background(
+                                     RoundedRectangle(cornerRadius: 24)
+                                         .fill(Color.black.opacity(0.3))
+                                 )
+                         )
+                         
+                         // 闹钟操作按钮栏
+                         HStack(spacing: 16) {
+                             // 稍后提醒按钮
+                             Button(action: snoozeAlarm) {
+                                 Text("稍后提醒")
+                                     .font(.system(size: 16, weight: .medium))
+                                     .foregroundColor(.white)
+                                     .frame(maxWidth: .infinity)
+                                     .frame(height: 48)
+                                     .background(
+                                         RoundedRectangle(cornerRadius: 24)
+                                             .fill(Color.gray.opacity(0.6))
+                                     )
+                             }
+                             
+                             // 关闭闹钟按钮
+                             Button(action: dismissAlarm) {
+                                 Text("关闭闹钟")
+                                     .font(.system(size: 16, weight: .medium))
+                                     .foregroundColor(.white)
+                                     .frame(maxWidth: .infinity)
+                                     .frame(height: 48)
+                                     .background(
+                                         RoundedRectangle(cornerRadius: 24)
+                                             .fill(Color.red.opacity(0.7))
+                                     )
+                             }
+                         }
+                         .padding(.horizontal, 32)
+                     }
+                     .padding(.horizontal, 20)
+                     .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
                 }
                 
                 // 调试信息（可选显示）
@@ -262,7 +236,6 @@ struct AlarmRingingView: View {
                         
                         Text("音频播放器: \(audioPlayer != nil ? "已创建" : "未创建")")
                         Text("播放状态: \(isPlaying ? "播放中" : "已停止")")
-                        Text("音量: \(String(format: "%.1f", volume))")
                         Text("音频时长: \(String(format: "%.1f", audioDuration))秒")
                         Text("播放进度: \(String(format: "%.1f", playbackProgress))秒")
                     }
@@ -274,14 +247,9 @@ struct AlarmRingingView: View {
                     .padding(.horizontal)
                 }
                 
-                // 顶部状态栏区域
+                // 调试信息按钮（右上角）
                 VStack {
                     HStack {
-                        // 左上角时间显示
-                        Text(timeFormatter.string(from: currentTime))
-                            .font(.system(size: 18, weight: .medium, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.9))
-                        
                         Spacer()
                         
                         // 调试按钮
@@ -291,15 +259,7 @@ struct AlarmRingingView: View {
                             Image(systemName: "info.circle")
                                 .font(.title2)
                                 .foregroundColor(.white.opacity(0.6))
-                        }
-                        
-                        // 右上角音量控制
-                        Button(action: {
-                            showingVolumeControl.toggle()
-                        }) {
-                            Image(systemName: volume > 0.5 ? "speaker.wave.2.fill" : (volume > 0 ? "speaker.wave.1.fill" : "speaker.slash.fill"))
-                                .font(.title2)
-                                .foregroundColor(.white.opacity(0.6))
+                                .shadow(color: .black.opacity(0.5), radius: 2)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -315,6 +275,7 @@ struct AlarmRingingView: View {
             print("⏰ 闹钟信息: \(alarm.timeString)")
             
             if !isViewLoaded {
+                setupVideo()
                 setupAudio()
                 startTimeTimer()
                 isViewLoaded = true
@@ -339,15 +300,37 @@ struct AlarmRingingView: View {
     
     // MARK: - 计算属性
     
-    private var currentAudio: (String, String) {
-        // 根据当前时间选择励志语音，确保每次都有内容
-        let index = Calendar.current.component(.minute, from: currentTime) % motivationalAudios.count
-        return motivationalAudios[index]
+    // MARK: - 视频相关方法
+    
+    func setupVideo() {
+        print("🎬 设置视频播放器...")
+        
+        // 尝试加载视频文件
+        guard let videoURL = Bundle.main.url(forResource: "sample", withExtension: "mp4") else {
+            print("❌ 找不到视频文件 sample.mp4")
+            return
+        }
+        
+        print("✅ 找到视频文件: \(videoURL.path)")
+        
+        // 创建视频播放器
+        let playerItem = AVPlayerItem(url: videoURL)
+        videoPlayer = AVQueuePlayer(playerItem: playerItem)
+        
+        // 设置循环播放
+        if let player = videoPlayer {
+            playerLooper = AVPlayerLooper(player: player, templateItem: playerItem)
+            
+            // 静音视频播放（因为我们有单独的音频）
+            player.isMuted = true
+            
+            print("✅ 视频播放器设置成功，已设置为循环播放")
+        }
     }
     
     // MARK: - 音频相关方法
     
-    private func setupAudio() {
+    func setupAudio() {
         print("🔧 设置音频...")
         print("🔊 目标音量: \(alarm.volume)")
         
@@ -430,7 +413,7 @@ struct AlarmRingingView: View {
         }
     }
     
-    private func playAudio() {
+    func playAudio() {
         print("▶️ 开始播放音频...")
         
         if let player = audioPlayer {
@@ -461,7 +444,7 @@ struct AlarmRingingView: View {
         print("📳 触觉反馈已触发")
     }
     
-    private func pauseAudio() {
+    func pauseAudio() {
         if let player = audioPlayer {
             player.pause()
         }
@@ -473,7 +456,7 @@ struct AlarmRingingView: View {
         impactFeedback.impactOccurred()
     }
     
-    private func togglePlayback() {
+    func togglePlayback() {
         if isPlaying {
             pauseAudio()
         } else {
@@ -481,7 +464,7 @@ struct AlarmRingingView: View {
         }
     }
     
-    private func replayAudio() {
+    func replayAudio() {
         if let player = audioPlayer {
             player.currentTime = 0
             player.play()
@@ -502,13 +485,13 @@ struct AlarmRingingView: View {
     
     // MARK: - 定时器相关方法
     
-    private func startTimeTimer() {
+    func startTimeTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             currentTime = Date()
         }
     }
     
-    private func startProgressTimer() {
+    func startProgressTimer() {
         progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             if let player = audioPlayer {
                 playbackProgress = player.currentTime
@@ -527,14 +510,14 @@ struct AlarmRingingView: View {
         }
     }
     
-    private func stopProgressTimer() {
+    func stopProgressTimer() {
         progressTimer?.invalidate()
         progressTimer = nil
     }
     
     // MARK: - 操作方法
     
-    private func dismissAlarm() {
+    func dismissAlarm() {
         print("⏹️ 关闭闹钟")
         
         // 停止所有音频播放
@@ -559,7 +542,7 @@ struct AlarmRingingView: View {
         print("✅ 闹钟页面已关闭")
     }
     
-    private func snoozeAlarm() {
+    func snoozeAlarm() {
         print("😴 稍后提醒")
         
         // 停止所有音频播放
@@ -584,7 +567,7 @@ struct AlarmRingingView: View {
         print("✅ 闹钟页面已关闭")
     }
     
-    private func cleanup() {
+    func cleanup() {
         timer?.invalidate()
         timer = nil
         systemSoundTimer?.invalidate()
@@ -595,12 +578,18 @@ struct AlarmRingingView: View {
         audioPlayer = nil
         audioDelegate = nil
         
+        // 清理视频播放器
+        videoPlayer?.pause()
+        playerLooper?.disableLooping()
+        playerLooper = nil
+        videoPlayer = nil
+        
         print("🧹 清理完成")
     }
     
     // MARK: - 系统声音备选方案
     
-    private func setupSystemSound() {
+    func setupSystemSound() {
         print("🔔 设置系统声音备选方案")
         
         // 立即播放系统声音和振动
@@ -623,14 +612,14 @@ struct AlarmRingingView: View {
     
     // MARK: - 辅助方法
     
-    private func formatTime(_ time: Double) -> String {
+    func formatTime(_ time: Double) -> String {
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
     
     // 调试方法：检查音频文件
-    private func debugAudioFiles() {
+    func debugAudioFiles() {
         print("🔍 调试音频文件...")
         
         // 检查Bundle中的所有文件
