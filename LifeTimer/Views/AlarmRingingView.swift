@@ -147,82 +147,35 @@ struct AlarmRingingView: View {
                     Spacer()
                     
                     // 底部控制栏 - 集成所有控制功能
-                     VStack(spacing: 16) {
-                         // 媒体播放控制栏
-                         HStack(spacing: 0) {
-                             // 媒体控制按钮组
-                             HStack(spacing: 24) {
-                                 // 上一首按钮
-                                 Button(action: {
-                                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                     impactFeedback.impactOccurred()
-                                 }) {
-                                     Image(systemName: "backward.fill")
-                                         .font(.system(size: 20, weight: .medium))
-                                         .foregroundColor(.white)
-                                 }
-                                 
-                                 // 播放/暂停按钮
-                                 Button(action: togglePlayback) {
-                                     Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                                         .font(.system(size: 24, weight: .medium))
-                                         .foregroundColor(.white)
-                                 }
-                                 
-                                 // 下一首按钮
-                                 Button(action: {
-                                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                     impactFeedback.impactOccurred()
-                                 }) {
-                                     Image(systemName: "forward.fill")
-                                         .font(.system(size: 20, weight: .medium))
-                                         .foregroundColor(.white)
-                                 }
-                             }
-                             
-                             Spacer()
-                         }
-                         .padding(.horizontal, 32)
-                         .padding(.vertical, 16)
-                         .background(
-                             RoundedRectangle(cornerRadius: 24)
-                                 .fill(.ultraThinMaterial.opacity(0.8))
+                     // 闹钟操作按钮栏
+                     HStack(spacing: 16) {
+                         // 稍后提醒按钮
+                         Button(action: snoozeAlarm) {
+                             Text("稍后提醒")
+                                 .font(.system(size: 16, weight: .medium))
+                                 .foregroundColor(.white)
+                                 .frame(maxWidth: .infinity)
+                                 .frame(height: 48)
                                  .background(
                                      RoundedRectangle(cornerRadius: 24)
-                                         .fill(Color.black.opacity(0.3))
+                                         .fill(Color.gray.opacity(0.6))
                                  )
-                         )
-                         
-                         // 闹钟操作按钮栏
-                         HStack(spacing: 16) {
-                             // 稍后提醒按钮
-                             Button(action: snoozeAlarm) {
-                                 Text("稍后提醒")
-                                     .font(.system(size: 16, weight: .medium))
-                                     .foregroundColor(.white)
-                                     .frame(maxWidth: .infinity)
-                                     .frame(height: 48)
-                                     .background(
-                                         RoundedRectangle(cornerRadius: 24)
-                                             .fill(Color.gray.opacity(0.6))
-                                     )
-                             }
-                             
-                             // 关闭闹钟按钮
-                             Button(action: dismissAlarm) {
-                                 Text("关闭闹钟")
-                                     .font(.system(size: 16, weight: .medium))
-                                     .foregroundColor(.white)
-                                     .frame(maxWidth: .infinity)
-                                     .frame(height: 48)
-                                     .background(
-                                         RoundedRectangle(cornerRadius: 24)
-                                             .fill(Color.red.opacity(0.7))
-                                     )
-                             }
                          }
-                         .padding(.horizontal, 32)
+                         
+                         // 关闭闹钟按钮
+                         Button(action: dismissAlarm) {
+                             Text("关闭闹钟")
+                                 .font(.system(size: 16, weight: .medium))
+                                 .foregroundColor(.white)
+                                 .frame(maxWidth: .infinity)
+                                 .frame(height: 48)
+                                 .background(
+                                     RoundedRectangle(cornerRadius: 24)
+                                         .fill(Color.red.opacity(0.7))
+                                 )
+                         }
                      }
+                     .padding(.horizontal, 32)
                      .padding(.horizontal, 20)
                      .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
                 }
@@ -324,7 +277,10 @@ struct AlarmRingingView: View {
             // 静音视频播放（因为我们有单独的音频）
             player.isMuted = true
             
-            print("✅ 视频播放器设置成功，已设置为循环播放")
+            // 自动开始播放视频
+            player.play()
+            
+            print("✅ 视频播放器设置成功，已设置为循环播放并开始播放")
         }
     }
     
@@ -444,44 +400,7 @@ struct AlarmRingingView: View {
         print("📳 触觉反馈已触发")
     }
     
-    func pauseAudio() {
-        if let player = audioPlayer {
-            player.pause()
-        }
-        isPlaying = false
-        stopProgressTimer()
-        
-        // 触觉反馈
-        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-        impactFeedback.impactOccurred()
-    }
-    
-    func togglePlayback() {
-        if isPlaying {
-            pauseAudio()
-        } else {
-            playAudio()
-        }
-    }
-    
-    func replayAudio() {
-        if let player = audioPlayer {
-            player.currentTime = 0
-            player.play()
-            isPlaying = true
-            playbackProgress = 0
-            startProgressTimer()
-        } else {
-            // 模拟重播
-            playbackProgress = 0
-            isPlaying = true
-            startProgressTimer()
-        }
-        
-        // 触觉反馈
-        let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
-        impactFeedback.impactOccurred()
-    }
+
     
     // MARK: - 定时器相关方法
     
