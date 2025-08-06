@@ -14,7 +14,7 @@ struct LifeTimerApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            LaunchScreenView()
         }
     }
 }

@@ -633,13 +633,13 @@ struct BottomNavigationBar: View {
                 action: {}
             )
             
-            // Discover 按钮
-            TabBarButton(
-                icon: "square.grid.2x2",
-                title: "Discover",
-                isSelected: false,
-                action: {}
-            )
+//            // Discover 按钮
+//            TabBarButton(
+//                icon: "square.grid.2x2",
+//                title: "Discover",
+//                isSelected: false,
+//                action: {}
+//            )
             
             // 中央添加按钮
             Button(action: {
@@ -667,18 +667,18 @@ struct BottomNavigationBar: View {
             }
             .buttonStyle(ScaleButtonStyle())
             
-            // Insights 按钮
-            TabBarButton(
-                icon: "chart.bar",
-                title: "Insights",
-                isSelected: false,
-                action: {}
-            )
-            
+//            // Insights 按钮
+//            TabBarButton(
+//                icon: "chart.bar",
+//                title: "Insights",
+//                isSelected: false,
+//                action: {}
+//            )
+//            
             // Profile 按钮
             TabBarButton(
-                icon: "person",
-                title: "Profile",
+                icon: "gearshape",
+                title: "Setting",
                 isSelected: false,
                 action: onSettingsTapped
             )

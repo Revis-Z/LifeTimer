@@ -1,4 +1,4 @@
-# LifeTimer - 励志闹钟应用
+# LifeTimer - 励志闹钟应用 (v1.4)
 
 ## 项目概述
 LifeTimer是一款专注于励志语音唤醒的iOS闹钟应用。通过高质量的励志语音内容替代传统闹铃声，为用户提供积极正面的起床体验，帮助用户以更好的心态开始每一天。应用采用极简设计理念，专注于核心功能，为有自我提升需求的用户群体提供情感价值和动力激发。
@@ -19,6 +19,8 @@ LifeTimer是一款专注于励志语音唤醒的iOS闹钟应用。通过高质�
 ## 应用结构
 ```
 LifeTimer App
+├── 启动页模块
+│   └── 应用Logo展示
 ├── 闹钟设置模块
 │   ├── 时间设置
 │   ├── 重复模式
@@ -38,6 +40,7 @@ LifeTimer App
 
 | 页面/视图名称 | 用途 | 核心功能 | 技术实现 | 导航/用户流程 | 建议文件路径 |
 |:--------:|:----:|:--------:|:--------:|:--------:|:--------:|
+| 启动页 | 应用启动时的欢迎界面 | 显示应用Logo和名称，3秒后自动跳转 | SwiftUI + DispatchQueue + fullScreenCover | 应用启动时首先显示，然后过渡到主页面 | `LifeTimer/LaunchScreenView.swift` |
 | 主页面(闹钟列表) | 显示所有闹钟的主界面 | 闹钟列表展示、快速开关、添加新闹钟 | SwiftUI + List + NavigationView | 应用启动默认页面，可导航到设置页面和闹钟编辑页面 | `LifeTimer/MainView.swift` |
 | 闹钟设置页面 | 创建和编辑闹钟 | 时间选择、重复模式设置、音量调节、保存/删除闹钟 | SwiftUI + DatePicker + Slider | 从主页面Push进入，完成后返回主页面 | `LifeTimer/AlarmSettingView.swift` |
 | 闹钟响起页面 | 闹钟触发时的全屏界面 | 显示当前时间、播放励志语音、关闭闹钟、播放控制 | SwiftUI + AVAudioPlayer + 全屏Modal | 系统通知触发，全屏Modal展示，关闭后返回主页面 | `LifeTimer/AlarmRingingView.swift` |
@@ -58,6 +61,41 @@ LifeTimer App
 
 
 ## 技术实现细节
+
+### 启动页 (v1.4 新增)
+
+#### UI设计方案
+- 全屏ZStack布局，暗色背景
+- 居中显示应用图标 (SF Symbols "alarm") 和名称 "LifeTimer"
+- 白色字体，简约现代风格
+- 符合HIG的启动页设计原则
+
+#### 数据管理方案
+- 使用@State管理激活状态
+- 无持久化数据需求
+
+#### 交互实现
+- onAppear触发3秒延迟
+- withAnimation实现平滑过渡
+- fullScreenCover进行页面跳转
+
+#### iOS特性利用
+- DispatchQueue for timing
+- SwiftUI animation system
+- SF Symbols for icons
+
+#### 可访问性考虑
+- 支持Dynamic Type
+- VoiceOver labels for elements
+
+#### 组件复用
+- 共享应用主题颜色
+
+#### 功能完整性检查表
+- [x] 显示应用Logo和名称
+- [x] 3秒自动跳转
+- [x] 平滑动画过渡
+- [x] 暗色科技风设计
 
 ### 主页面(闹钟列表)
 
@@ -198,6 +236,19 @@ LifeTimer App
 #### 功能完整性检查表（主页面 v1.3）
 - [x] NavigationView + List布局结构
 - [x] 重构的底部导航栏（五按钮布局：Home、Discover、添加、Insights、Profile）
+
+## 更新日志
+
+### v1.4 (2025-08-03)
+- 新增启动页功能：应用启动时显示3秒欢迎界面
+- 更新应用入口以集成启动页
+- 优化应用启动体验
+
+### v1.3 (2025-08-03)
+- 闹钟响起页面视频化升级
+- 添加随机视频背景和音频播放
+- 简化闹钟编辑页面
+- 更新UI风格
 - [x] 闹钟列表展示和卡片设计
 - [x] 手势滑动删除功能（向左滑动显示删除按钮）
 - [x] 删除确认机制和动画效果
