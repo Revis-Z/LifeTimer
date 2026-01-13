@@ -111,7 +111,7 @@ class AlarmStore: ObservableObject {
         
         let content = UNMutableNotificationContent()
         content.title = "LifeTimer"
-        content.body = "是时候起床了！准备好迎接美好的一天吧！"
+        content.body = "Time to wake up! Get ready for a wonderful day!"
         content.sound = .default
         content.categoryIdentifier = "ALARM_CATEGORY"
         
@@ -203,13 +203,13 @@ extension AlarmStore {
     static func setupNotificationCategories() {
         let stopAction = UNNotificationAction(
             identifier: "STOP_ALARM",
-            title: "关闭闹钟",
+            title: "Stop Alarm",
             options: [.foreground]
         )
         
         let snoozeAction = UNNotificationAction(
             identifier: "SNOOZE_ALARM",
-            title: "稍后提醒",
+            title: "Snooze",
             options: []
         )
         

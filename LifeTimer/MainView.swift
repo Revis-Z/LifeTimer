@@ -419,8 +419,8 @@ struct MainView: View {
     // MARK: - 稍后提醒功能
     private func scheduleSnoozeAlarm(for alarm: Alarm) {
         let content = UNMutableNotificationContent()
-        content.title = "LifeTimer - 稍后提醒"
-        content.body = "是时候起床了！准备好迎接美好的一天吧！"
+        content.title = "LifeTimer - Snooze"
+        content.body = "Time to wake up! Get ready for a wonderful day!"
         content.sound = .default
         content.categoryIdentifier = "ALARM_CATEGORY"
         
@@ -454,12 +454,12 @@ struct EmptyStateView: View {
                 .foregroundColor(.white.opacity(0.6))
             
             VStack(spacing: 12) {
-                Text("还没有闹钟")
+                Text("No Alarms Yet")
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
                 
-                Text("点击下方的 + 按钮\n创建你的第一个励志闹钟")
+                Text("Tap the + button below\nto create your first motivational alarm")
                     .font(.body)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
@@ -468,7 +468,7 @@ struct EmptyStateView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("还没有闹钟，点击加号按钮创建你的第一个励志闹钟")
+        .accessibilityLabel("No alarms yet. Tap the plus button to create your first motivational alarm")
     }
 }
 
@@ -500,7 +500,7 @@ struct AlarmListView: View {
                         // 执行删除
                         onDelete(alarm)
                     } label: {
-                        Label("删除", systemImage: "trash")
+                        Label("Delete", systemImage: "trash")
                     }
                     .tint(.red)
                     
@@ -512,17 +512,17 @@ struct AlarmListView: View {
                         
                         onEdit(alarm)
                     } label: {
-                        Label("编辑", systemImage: "pencil")
+                        Label("Edit", systemImage: "pencil")
                     }
                     .tint(.blue)
                 }
                 .contextMenu {
                     Button(action: { onEdit(alarm) }) {
-                        Label("编辑", systemImage: "pencil")
+                        Label("Edit", systemImage: "pencil")
                     }
                     
                     Button(role: .destructive, action: { onDelete(alarm) }) {
-                        Label("删除", systemImage: "trash")
+                        Label("Delete", systemImage: "trash")
                     }
                 }
             }
@@ -560,7 +560,7 @@ struct AlarmCardView: View {
                 set: { _ in onToggle() }
             ))
             .toggleStyle(CustomToggleStyle())
-            .accessibilityLabel(alarm.isEnabled ? "关闭闹钟" : "开启闹钟")
+            .accessibilityLabel(alarm.isEnabled ? "Disable Alarm" : "Enable Alarm")
         }
         .padding(20)
         
@@ -580,7 +580,7 @@ struct AlarmCardView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("闹钟 \(alarm.timeString) \(alarm.repeatModeDescription) \(alarm.isEnabled ? "已开启" : "已关闭")")
+        .accessibilityLabel("Alarm \(alarm.timeString) \(alarm.repeatModeDescription) \(alarm.isEnabled ? "Enabled" : "Disabled")")
     }
 }
 

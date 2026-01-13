@@ -26,16 +26,16 @@ struct AlarmRingingView: View {
     
     // 励志语音内容数组
     let motivationalAudios = [
-        ("早安激励", "每一个清晨都是新的开始，今天的你比昨天更强大！"),
-        ("成功启程", "成功属于那些敢于追梦的人，今天就是你追梦的日子！"),
-        ("积极能量", "用积极的心态迎接新的一天，你的笑容就是最好的阳光！"),
-        ("目标达成", "每一步都在接近你的目标，坚持下去，胜利就在前方！"),
-        ("自信满满", "相信自己的能力，你拥有改变世界的力量！"),
-        ("勇敢前行", "勇敢面对挑战，每一次困难都是成长的机会！"),
-        ("梦想实现", "梦想不会逃跑，逃跑的只有不敢追梦的人！"),
-        ("正能量", "今天是美好的一天，让我们用正能量填满每一刻！"),
-        ("坚持不懈", "坚持是成功的密码，今天继续为梦想努力！"),
-        ("美好开始", "新的一天，新的机会，让我们创造属于自己的精彩！")
+        ("Morning Motivation", "Every morning is a new beginning. You are stronger today than yesterday!"),
+        ("Success Journey", "Success belongs to those who dare to dream. Today is your day!"),
+        ("Positive Energy", "Welcome the new day with a positive mindset. Your smile is the best sunshine!"),
+        ("Goal Achievement", "Every step brings you closer to your goal. Keep going, victory is ahead!"),
+        ("Confidence", "Believe in your abilities. You have the power to change the world!"),
+        ("Be Brave", "Face challenges bravely. Every difficulty is an opportunity to grow!"),
+        ("Dream Realization", "Dreams don't run away. Only those who give up run away from them!"),
+        ("Good Vibes", "Today is a beautiful day. Fill every moment with positive energy!"),
+        ("Persistence", "Persistence is the key to success. Keep working for your dreams today!"),
+        ("Fresh Start", "New day, new opportunities. Let's create something wonderful!")
     ]
     
     // 当前显示的励志句子（随机选择后固定显示）
@@ -142,7 +142,7 @@ struct AlarmRingingView: View {
                      HStack(spacing: 16) {
                          // 稍后提醒按钮
                          Button(action: snoozeAlarm) {
-                             Text("稍后提醒")
+                             Text("Snooze")
                                  .font(.system(size: 16, weight: .medium))
                                  .foregroundColor(.white)
                                  .frame(maxWidth: .infinity)
@@ -155,7 +155,7 @@ struct AlarmRingingView: View {
                          
                          // 关闭闹钟按钮
                          Button(action: dismissAlarm) {
-                             Text("关闭闹钟")
+                             Text("Stop Alarm")
                                  .font(.system(size: 16, weight: .medium))
                                  .foregroundColor(.white)
                                  .frame(maxWidth: .infinity)

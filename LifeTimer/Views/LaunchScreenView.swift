@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LaunchScreenView: View {
     @State private var isActive = false
+    @AppStorage("hasSeenOnboarding") var hasSeenOnboarding: Bool = false
     
     var body: some View {
         ZStack {
@@ -30,7 +31,11 @@ struct LaunchScreenView: View {
             }
         }
         .fullScreenCover(isPresented: $isActive) {
-            MainView()
+            if hasSeenOnboarding {
+                MainView()
+            } else {
+                OnboardingView()
+            }
         }
     }
 }

@@ -126,14 +126,14 @@ enum RepeatMode: Codable, CaseIterable, Equatable {
     var description: String {
         switch self {
         case .once:
-            return "仅一次"
+            return "Once"
         case .daily:
-            return "每天"
+            return "Daily"
         case .custom(let weekdays):
             if weekdays.isEmpty {
-                return "从不"
+                return "Never"
             }
-            let dayNames = ["", "周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+            let dayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
             let selectedDays = weekdays.sorted().compactMap { dayNames[safe: $0] }
             return selectedDays.joined(separator: ", ")
         }
@@ -142,11 +142,11 @@ enum RepeatMode: Codable, CaseIterable, Equatable {
     var shortDescription: String {
         switch self {
         case .once:
-            return "一次"
+            return "Once"
         case .daily:
-            return "每天"
+            return "Daily"
         case .custom:
-            return "自定义"
+            return "Custom"
         }
     }
 }

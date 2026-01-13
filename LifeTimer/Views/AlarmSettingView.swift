@@ -58,7 +58,7 @@ struct AlarmSettingView: View {
                     .padding(.bottom, 40)
                 }
             }
-            .navigationTitle(isEditMode ? "编辑闹钟" : "新建闹钟")
+            .navigationTitle(isEditMode ? "Edit Alarm" : "New Alarm")
             .navigationBarTitleDisplayMode(.inline)
         }
         .preferredColorScheme(.dark)
@@ -78,7 +78,7 @@ struct AlarmSettingView: View {
                     .foregroundColor(.cyan)
                     .font(.title2)
                 
-                Text("闹钟时间")
+                Text("Alarm Time")
                     .font(.headline)
                     .foregroundColor(.white)
                 
@@ -88,7 +88,7 @@ struct AlarmSettingView: View {
             // 时间选择器卡片
             VStack {
                 DatePicker(
-                    "选择时间",
+                    "Select Time",
                     selection: $selectedTime,
                     displayedComponents: .hourAndMinute
                 )
@@ -116,7 +116,7 @@ struct AlarmSettingView: View {
                     .foregroundColor(.cyan)
                     .font(.title2)
                 
-                Text("重复模式")
+                Text("Repeat")
                     .font(.headline)
                     .foregroundColor(.white)
                 
@@ -140,7 +140,7 @@ struct AlarmSettingView: View {
                         Image(systemName: "calendar")
                             .foregroundColor(.cyan)
                         
-                        Text("自定义")
+                        Text("Custom")
                             .fontWeight(.medium)
                         
                         Spacer()
@@ -193,7 +193,7 @@ struct AlarmSettingView: View {
             Button(action: {
                 dismiss()
             }) {
-                Text("取消")
+                Text("Cancel")
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
@@ -213,7 +213,7 @@ struct AlarmSettingView: View {
             Button(action: {
                 saveAlarm()
             }) {
-                Text("保存")
+                Text("Save")
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundColor(.black)
@@ -337,8 +337,8 @@ struct CustomRepeatView: View {
     @Binding var selectedWeekdays: Set<Int>
     
     private let weekdays = [
-        (1, "周日"), (2, "周一"), (3, "周二"), (4, "周三"),
-        (5, "周四"), (6, "周五"), (7, "周六")
+        (1, "Sun"), (2, "Mon"), (3, "Tue"), (4, "Wed"),
+        (5, "Thu"), (6, "Fri"), (7, "Sat")
     ]
     
     var body: some View {
@@ -356,7 +356,7 @@ struct CustomRepeatView: View {
                 .ignoresSafeArea()
                 
                 VStack(spacing: 20) {
-                    Text("选择重复的日期")
+                    Text("Select Days")
                         .font(.title2)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
@@ -372,18 +372,18 @@ struct CustomRepeatView: View {
                     Spacer()
                 }
             }
-            .navigationTitle("自定义重复")
+            .navigationTitle("Custom Repeat")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
+                    Button("Cancel") {
                         dismiss()
                     }
                     .foregroundColor(.white)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") {
+                    Button("Done") {
                         dismiss()
                     }
                     .foregroundColor(.cyan)
