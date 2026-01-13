@@ -18,7 +18,6 @@ struct AlarmSettingView: View {
     // 编辑状态
     @State private var selectedTime = Date()
     @State private var selectedRepeatMode: RepeatMode = .daily
-    @State private var volume: Double = 0.8
     @State private var customWeekdays: Set<Int> = []
     
     // UI状态
@@ -50,11 +49,6 @@ struct AlarmSettingView: View {
                         
                         // 重复模式选择
                         repeatModeSection
-                        
-                        // 音量控制
-                        volumeSection
-                        
-
                         
                         // 操作按钮
                         actionButtonsSection
@@ -189,55 +183,7 @@ struct AlarmSettingView: View {
         }
     }
     
-    // MARK: - 音量控制部分
-    private var volumeSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "speaker.wave.2")
-                    .foregroundColor(.cyan)
-                    .font(.title2)
-                
-                Text("音量")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Text("\(Int(volume * 100))%")
-                    .font(.subheadline)
-                    .foregroundColor(.cyan)
-                    .fontWeight(.medium)
-            }
-            
-            VStack(spacing: 16) {
-                // 自定义音量滑块
-                VStack {
-                    Slider(value: $volume, in: 0...1) {
-                        Text("音量")
-                    } minimumValueLabel: {
-                        Image(systemName: "speaker")
-                            .foregroundColor(.gray)
-                    } maximumValueLabel: {
-                        Image(systemName: "speaker.wave.3")
-                            .foregroundColor(.cyan)
-                    }
-                    .accentColor(.cyan)
-                }
-                
 
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.cyan.opacity(0.3), lineWidth: 1)
-                    )
-            )
-        }
-    }
-    
 
     
     // MARK: - 操作按钮部分
@@ -329,7 +275,6 @@ struct AlarmSettingView: View {
             selectedTime = calendar.date(from: components) ?? Date()
             
             selectedRepeatMode = existingAlarm.repeatMode
-            volume = existingAlarm.volume
             
             if case .custom(let weekdays) = existingAlarm.repeatMode {
                 customWeekdays = weekdays
@@ -361,7 +306,6 @@ struct AlarmSettingView: View {
             updatedAlarm.hour = components.hour ?? 7
             updatedAlarm.minute = components.minute ?? 0
             updatedAlarm.repeatMode = finalRepeatMode
-            updatedAlarm.volume = volume
             updatedAlarm.isEnabled = true  // 保存后自动启用闹钟
             
             alarmStore.updateAlarm(updatedAlarm)
@@ -371,8 +315,7 @@ struct AlarmSettingView: View {
                 hour: components.hour ?? 7,
                 minute: components.minute ?? 0,
                 repeatMode: finalRepeatMode,
-                isEnabled: true,
-                volume: volume
+                isEnabled: true
             )
             
             alarmStore.addAlarm(newAlarm)

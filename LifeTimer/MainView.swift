@@ -625,13 +625,13 @@ struct BottomNavigationBar: View {
                 action: {}
             )
             
-            // Discover 按钮
-            TabBarButton(
-                icon: "square.grid.2x2",
-                title: "Discover",
-                isSelected: false,
-                action: {}
-            )
+//            // Discover 按钮
+//            TabBarButton(
+//                icon: "square.grid.2x2",
+//                title: "Discover",
+//                isSelected: false,
+//                action: {}
+//            )
             
             // 中央添加按钮
             Button(action: {
