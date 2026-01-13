@@ -13,7 +13,6 @@ import UIKit
 // MARK: - 主页面视图
 struct MainView: View {
     @StateObject private var alarmStore = AlarmStore()
-    @State private var showingSettings = false
     @State private var showingNewAlarm = false
     @State private var selectedAlarm: Alarm?
     @State private var showingAlarmRinging = false
@@ -57,9 +56,6 @@ struct MainView: View {
                     
                     // 底部导航栏
                     BottomNavigationBar(
-                        onSettingsTapped: {
-                            showingSettings = true
-                        },
                         onAddAlarmTapped: {
                             showingNewAlarm = true
                         }
@@ -70,9 +66,6 @@ struct MainView: View {
             .navigationBarTitleDisplayMode(.large)
         }
         .preferredColorScheme(.dark)
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
-        }
         .sheet(isPresented: $showingNewAlarm) {
             AlarmSettingView(alarm: .constant(nil), isPresented: $showingNewAlarm)
                 .environmentObject(alarmStore)
@@ -620,7 +613,6 @@ struct CustomToggleStyle: ToggleStyle {
 
 // MARK: - 底部导航栏
 struct BottomNavigationBar: View {
-    let onSettingsTapped: () -> Void
     let onAddAlarmTapped: () -> Void
     
     var body: some View {
@@ -673,14 +665,6 @@ struct BottomNavigationBar: View {
                 title: "Insights",
                 isSelected: false,
                 action: {}
-            )
-            
-            // Profile 按钮
-            TabBarButton(
-                icon: "person",
-                title: "Profile",
-                isSelected: false,
-                action: onSettingsTapped
             )
         }
         .frame(height: 88)
