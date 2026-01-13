@@ -26,6 +26,7 @@ LifeTimer App
 | 页面/视图名称 | 用途 | 核心功能 | 建议文件路径 |
 |:--------:|:----:|:--------:|:--------:|
 | 启动页 | 欢迎界面 | Logo展示，自动跳转 | `LifeTimer/LaunchScreenView.swift` |
+| 用户引导页 | 首次启动引导 | 核心功能介绍、权限获取 | `LifeTimer/Views/Onboarding/OnboardingView.swift` |
 | 主页面(闹钟列表) | 核心界面 | 列表展示、开关、添加 | `LifeTimer/MainView.swift` |
 | 闹钟设置页面 | 编辑闹钟 | 时间、重复、标签设置 | `LifeTimer/AlarmSettingView.swift` |
 | 闹钟响起页面 | 唤醒界面 | 视频背景、励志语音、关闭 | `LifeTimer/AlarmRingingView.swift` |
@@ -38,6 +39,8 @@ LifeTimer App
 ## 开发状态跟踪
 | 页面/组件名称 | 开发状态 | 文件路径 |
 |:-------------:|:--------:|:------------:|
+| 启动页 | ✅ 已完成 | `LifeTimer/LaunchScreenView.swift` |
+| 用户引导页 | ✅ 已完成 | `LifeTimer/Views/Onboarding/OnboardingView.swift` |
 | 主页面(闹钟列表) | ✅ 已完成 | `LifeTimer/MainView.swift` |
 | 闹钟设置页面 | ✅ 已完成 | `LifeTimer/AlarmSettingView.swift` |
 | 闹钟响起页面 | ✅ 已完成 | `LifeTimer/AlarmRingingView.swift` |
@@ -79,6 +82,11 @@ LifeTimer App
 - **🔧 闹钟设置页精简**: 移除了音量设置功能
   - **原因**: 简化用户操作，使用默认系统音量或固定音量
   - **影响**: 用户无法单独设置每个闹钟的音量
+
+- **✨ 新增用户引导 (Onboarding)**: 首次启动应用时显示沉浸式引导页
+  - **内容**: 4 页视频背景引导，介绍应用核心价值
+  - **功能**: 引导用户开启通知权限，确保闹钟正常工作
+  - **技术**: 使用 `TabView` 和 `@AppStorage` 实现状态管理和页面切换
 
 ## 历史更新 (2024/12/21)
 
